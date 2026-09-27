@@ -4,13 +4,16 @@ namespace App\Services;
 
 use App\Actions\Auth\LoginAction;
 use App\Actions\Auth\RegisterUserAction;
+use App\Actions\Auth\GetAuthenticatedUserAction;
+use App\Models\User;
 
 class AuthService
 {
 
     public function __construct(
         private readonly RegisterUserAction $registerUser,
-        private readonly LoginAction $authenticateUser
+        private readonly LoginAction $authenticateUser,
+        private readonly GetAuthenticatedUserAction $getAuthenticatedUser
     ) {}
 
 
@@ -36,5 +39,10 @@ class AuthService
             'token'      => $user->createToken('api')->plainTextToken,
             'token_type' => 'bearer',
         ];
+    }
+
+    public function getAuthenticatedUser(User $user): User
+    {
+        return $this->getAuthenticatedUser->execute($user);
     }
 }

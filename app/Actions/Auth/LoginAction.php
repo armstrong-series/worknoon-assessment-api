@@ -21,7 +21,8 @@ class LoginAction
 
         return $user->refresh()->load(
             [
-                'role'
+                'role',
+                'customer'
             ]
         );
     }

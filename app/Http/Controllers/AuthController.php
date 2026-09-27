@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Services\AuthService;
 use App\Http\Requests\LoginRequest;
 use App\Http\Requests\RegisterRequest;
+use Illuminate\Http\Request;
 
 class AuthController extends Controller
 {
@@ -18,7 +19,6 @@ class AuthController extends Controller
         $email = $request->string('email')->toString();
         $password = $request->string('password')->toString();
         $result = $this->authService->authenticate($email, $password);
-
         return worknoonResponse(
             $result,
             200,
@@ -26,7 +26,12 @@ class AuthController extends Controller
             true,
             app('url')->current(),
             [],
-            'auth'
+            'auth',
+            [
+                $result['user'],
+                $result['user']->role,
+                $result['user']->customer,
+            ],
         );
     }
 
@@ -43,6 +48,29 @@ class AuthController extends Controller
             app('url')->current(),
             [],
             'auth'
+        );
+    }
+
+
+    public function me(Request $request)
+    {
+        $result = $this->authService->getAuthenticatedUser(
+            $request->user()
+        );
+
+        return worknoonResponse(
+            $result,
+            200,
+            'Authenticated user fetched successfully.',
+            true,
+            app('url')->current(),
+            [],
+            'users',
+            [
+                $result,
+                $result->role,
+                $result->customer,
+            ],
         );
     }
 }

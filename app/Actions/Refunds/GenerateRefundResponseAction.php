@@ -27,9 +27,15 @@ class GenerateRefundResponseAction
         }
 
 
+
         $order = Order::query()
-            ->with(['customer', 'items'])
-            ->whereKey($data['order_id'])->where('customer_id', $customer->id)->first();
+            ->with([
+                'customer',
+                'items',
+            ])
+            ->where('order_number', $data['order_number'])
+            ->where('customer_id', $customer->id)
+            ->first();
 
 
 
@@ -43,7 +49,7 @@ class GenerateRefundResponseAction
             );
         }
 
-        $existingRefund = RefundRequest::query()->where('order_id', $data['order_id'])->exists();
+        $existingRefund = RefundRequest::query()->where('order_id', $order->id)->exists();
 
         if ($existingRefund) {
             throw ValidationException::withMessages(

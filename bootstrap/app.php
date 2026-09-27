@@ -9,6 +9,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Middleware\HandleCors;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 
 if (! function_exists('mapRoutes')) {
     function mapRoutes(): void
@@ -50,26 +51,34 @@ return Application::configure(basePath: dirname(__DIR__))
         });
     })
     ->withExceptions(function (Exceptions $exceptions): void {
+
         $exceptions->shouldRenderJsonWhen(
             fn(Request $request): bool =>
-            $request->is('api/*') || $request->expectsJson(),
+            $request->expectsJson()
+                || $request->is('api/*'),
         );
 
-        $exceptions->render(function (AuthenticationException $e): JsonResponse {
+        $exceptions->render(function (
+            AuthenticationException $e
+        ): JsonResponse {
             return worknoonResponse(
                 [],
                 401,
-                $e->getMessage(),
+                $e->getMessage() ?: 'Unauthenticated.',
                 false,
+                request()->fullUrl(),
             );
         });
 
-        $exceptions->render(function (AuthorizationException $e): JsonResponse {
+        $exceptions->render(function (
+            AccessDeniedHttpException $e
+        ): JsonResponse {
             return worknoonResponse(
                 [],
                 403,
-                $e->getMessage(),
+                $e->getMessage() ?: 'This action is unauthorized.',
                 false,
+                request()->fullUrl(),
             );
         });
     })

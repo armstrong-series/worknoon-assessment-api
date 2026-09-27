@@ -404,6 +404,98 @@ Customers authenticate through:
 POST /auth/login
 ```
 
+Sample Login Request (JSON:API v1 compliant)
+
+```json
+{
+    "data": {
+        "type": "auth",
+        "attributes": {
+            "email": "alice@example.com",
+            "password": "password123"
+        }
+    }
+}
+```
+
+The corresponding response
+
+```json
+{
+    "message": "Authenticated",
+    "status": "success",
+    "data": {
+        "type": "auth",
+        "attributes": {
+            "token": "18|HG1mk6HpzMQyqPBpng5FPo5GQAtfKv5RvsLyJ9TCe4f9263d",
+            "token_type": "bearer"
+        },
+        "relationships": {
+            "user": {
+                "data": {
+                    "type": "users",
+                    "id": "01a0ddf8-9413-7293-b083-bb344830281c"
+                }
+            }
+        }
+    },
+    "jsonapi": {
+        "version": "1.1"
+    },
+    "links": {
+        "self": "https://api.worknoon.test/auth/login"
+    },
+    "included": [
+        {
+            "type": "users",
+            "id": "01a0ddf8-9413-7293-b083-bb344830281c",
+            "attributes": {
+                "name": "Alice Johnson",
+                "email": "alice@example.com",
+                "role_id": "01a0ddf8-916c-7225-8c58-9e330da85460",
+                "email_verified_at": "2026-09-26T13:47:30.000000Z"
+            },
+            "relationships": {
+                "customer": {
+                    "data": {
+                        "type": "customers",
+                        "id": "01a0ddf8-942d-72bb-8cff-cb1519c7ea1c"
+                    }
+                },
+                "role": {
+                    "data": {
+                        "type": "roles",
+                        "id": "01a0ddf8-916c-7225-8c58-9e330da85460"
+                    }
+                }
+            }
+        },
+        {
+            "type": "roles",
+            "id": "01a0ddf8-916c-7225-8c58-9e330da85460",
+            "attributes": {
+                "name": "customer"
+            },
+            "relationships": []
+        },
+        {
+            "type": "customers",
+            "id": "01a0ddf8-942d-72bb-8cff-cb1519c7ea1c",
+            "attributes": {
+                "user_id": "01a0ddf8-9413-7293-b083-bb344830281c",
+                "phone": "+1-202-555-0101",
+                "address": "31438 Ian Extension",
+                "city": "New York",
+                "country": "USA"
+            },
+            "relationships": []
+        }
+    ]
+}
+```
+
+From the above you can see it has JSON API v1 response along with its parent objects, relationship resource(which are also objects). They have the properties in attributes object, types.
+
 After successful authentication, the API returns a token.
 
 Use the token on protected endpoints:
@@ -595,21 +687,21 @@ Example response:
     "status": "success",
     "data": {
         "type": "refund-requests",
-        "id": "01a0d580-568f-7313-a1e8-3ed8d1844635",
+        "id": "01a0de28-590f-73d5-b424-c7241936aae7",
         "attributes": {
-            "user_id": "01a0d45c-e01a-70bb-b8fd-207b9c2b584d",
-            "customer_id": "01a0d45c-e01b-7301-bc18-cd61da9ec84c",
-            "order_id": "01a0d45c-e01c-70a0-92e9-71df9af11fcb",
-            "reason": "The wireless headphones arrived damaged and the left earcup is not working.",
-            "requested_amount_cents": 45000,
+            "user_id": "01a0ddf8-9413-7293-b083-bb344830281c",
+            "customer_id": "01a0ddf8-942d-72bb-8cff-cb1519c7ea1c",
+            "order_id": "01a0ddf8-9432-735d-8c3f-b5a7d4d54851",
+            "reason": "The USB-C Monitor arrived damaged and is not working.",
+            "requested_amount_cents": 40000,
             "status": "processed",
             "decision": "escalated",
             "reason_code": "human_review_required",
             "decision_reason": "The request has been flagged as suspicious. The customer request conflicts with order data.",
             "ai_analysis": {
                 "intent": "damaged_item",
-                "summary": "Customer reports a damaged wireless headphones item, but the order only contains a USB-C Monitor.",
-                "confidence": 0.99,
+                "summary": "Customer reports a damaged USB-C Monitor, but the order only contains Wireless Headphones.",
+                "confidence": 0.98,
                 "suspicious": true,
                 "conflicts_with_order_data": true
             },
@@ -621,74 +713,76 @@ Example response:
             "user": {
                 "data": {
                     "type": "users",
-                    "id": "01a0d45c-e01a-70bb-b8fd-207b9c2b584d"
+                    "id": "01a0ddf8-9413-7293-b083-bb344830281c"
                 }
             },
             "customer": {
                 "data": {
                     "type": "customers",
-                    "id": "01a0d45c-e01b-7301-bc18-cd61da9ec84c"
+                    "id": "01a0ddf8-942d-72bb-8cff-cb1519c7ea1c"
                 }
             },
             "order": {
                 "data": {
                     "type": "orders",
-                    "id": "01a0d45c-e01c-70a0-92e9-71df9af11fcb"
+                    "id": "01a0ddf8-9432-735d-8c3f-b5a7d4d54851"
                 }
             }
         }
     },
-    "included": [
-        {
-            "id": "01a0d45c-e01a-70bb-b8fd-207b9c2b584d",
-            "name": "Frank Miller",
-            "email": "frank@example.com",
-            "role_id": "01a0d432-ffe4-7266-99ac-72cbd7e5e1cf",
-            "email_verified_at": "2026-09-24T17:00:51.000000Z",
-            "created_at": "2026-09-24T17:00:51.000000Z",
-            "updated_at": "2026-09-24T17:00:51.000000Z"
-        },
-        {
-            "id": "01a0d45c-e01b-7301-bc18-cd61da9ec84c",
-            "user_id": "01a0d45c-e01a-70bb-b8fd-207b9c2b584d",
-            "phone": "+1-202-555-0106",
-            "address": "7494 Muller Coves Apt. 970",
-            "city": "Denver",
-            "country": "USA",
-            "created_at": "2026-09-24T17:00:51.000000Z",
-            "updated_at": "2026-09-24T17:00:51.000000Z"
-        },
-        {
-            "id": "01a0d45c-e01c-70a0-92e9-71df9af11fcb",
-            "customer_id": "01a0d45c-e01b-7301-bc18-cd61da9ec84c",
-            "order_number": "WN-A2QWF7WCEQ",
-            "total_amount_cents": 40000,
-            "currency": "USD",
-            "status": "completed",
-            "ordered_at": "2026-09-18T17:00:51.000000Z",
-            "created_at": "2026-09-24T17:00:51.000000Z",
-            "updated_at": "2026-09-24T17:00:51.000000Z",
-            "items": [
-                {
-                    "id": "01a0d45c-e01e-72ae-8d11-568a67825487",
-                    "order_id": "01a0d45c-e01c-70a0-92e9-71df9af11fcb",
-                    "product_name": "USB-C Monitor",
-                    "quantity": 1,
-                    "unit_price_cents": 40000,
-                    "is_final_sale": false,
-                    "created_at": "2026-09-24T17:00:51.000000Z",
-                    "updated_at": "2026-09-24T17:00:51.000000Z"
-                }
-            ]
-        }
-    ],
-    "meta": [],
     "jsonapi": {
         "version": "1.1"
     },
     "links": {
         "self": "https://api.worknoon.test/refunds/refund-requests"
-    }
+    },
+    "included": [
+        {
+            "type": "users",
+            "id": "01a0ddf8-9413-7293-b083-bb344830281c",
+            "attributes": {
+                "name": "Alice Johnson",
+                "email": "alice@example.com",
+                "role_id": "01a0ddf8-916c-7225-8c58-9e330da85460",
+                "email_verified_at": "2026-09-26T13:47:30.000000Z"
+            },
+            "relationships": []
+        },
+        {
+            "type": "customers",
+            "id": "01a0ddf8-942d-72bb-8cff-cb1519c7ea1c",
+            "attributes": {
+                "user_id": "01a0ddf8-9413-7293-b083-bb344830281c",
+                "phone": "+1-202-555-0101",
+                "address": "31438 Ian Extension",
+                "city": "New York",
+                "country": "USA"
+            },
+            "relationships": []
+        },
+        {
+            "type": "orders",
+            "id": "01a0ddf8-9432-735d-8c3f-b5a7d4d54851",
+            "attributes": {
+                "customer_id": "01a0ddf8-942d-72bb-8cff-cb1519c7ea1c",
+                "order_number": "WN-3RKBNLYTRA",
+                "total_amount_cents": 45000,
+                "currency": "USD",
+                "status": "completed",
+                "ordered_at": "2026-09-21T13:47:30.000000Z"
+            },
+            "relationships": {
+                "items": {
+                    "data": [
+                        {
+                            "type": "order_items",
+                            "id": "01a0ddf8-9435-737d-b55e-5e7da0f6f866"
+                        }
+                    ]
+                }
+            }
+        }
+    ]
 }
 ```
 
@@ -882,6 +976,9 @@ The refund workflow is intentionally deterministic.
 Customer
    │
    │ POST /refunds/refund-requests
+   | GET /refunds/refund-requests (Admin or Support)
+   |GET /refunds/refund-request/{requestId} (Admin or Support)
+   |PATCH /refunds/refund-requests/{refundRequestId}/decision (Admin or Support)
    ▼
 CreateRefundRequestAction
    │
@@ -925,6 +1022,10 @@ JSON:API Response
 
 ---
 
+# Getting Requested Refunds
+
+This is permission to review this information is tied to Admin and Support role
+
 # Refund Policy
 
 The current policy contains the following rules.
@@ -943,7 +1044,7 @@ results in:
 DENIED
 ```
 
----
+Admin or Support can review the refund requests and decide to either deny or approve the request. On approval, the customer gets a mail of acknwoledgement of geniune refunds with information providing their bank detail excluding card information. This is sent to the customer mailbox
 
 ## 2. Order Age
 

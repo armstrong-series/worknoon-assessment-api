@@ -20,9 +20,9 @@ class CreateRefundRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'order_id' => [
+            'order_number' => [
                 'required',
-                'uuid',
+                'string',
             ],
 
             'reason' => [

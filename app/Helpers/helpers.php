@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Auth\Access\AuthorizationException;
 use App\Services\RoleService;
 use App\Enums\JsonApiVersion;
-
+use Illuminate\Database\Eloquent\Builder;
 
 if (! function_exists('worknoonResponse')) {
     function worknoonResponse(
@@ -21,26 +21,22 @@ if (! function_exists('worknoonResponse')) {
         array $included = [],
         array $meta = [],
     ): JsonResponse {
-        // if (! config('livdot.json_api.enabled')) {
-        //     return response()->json([
-        //         'message' => $message,
-        //         'status'  => $status ? 'success' : 'error',
-        //         'data'    => $data,
-        //     ], $statusCode, $headers);
-        // }
-
 
         $formatRelationship = function (mixed $related): array {
             if ($related instanceof Collection) {
                 return [
-                    'data' => $related->map(
-                        fn(Model $model): array => [
-                            'type' => Str::plural(
-                                Str::snake(class_basename($model))
-                            ),
-                            'id' => (string) $model->getKey(),
-                        ]
-                    )->values()->all(),
+                    'data' => $related
+                        ->filter(fn($model) => $model instanceof Model)
+                        ->map(
+                            fn(Model $model): array => [
+                                'type' => Str::plural(
+                                    Str::snake(class_basename($model))
+                                ),
+                                'id' => (string) $model->getKey(),
+                            ]
+                        )
+                        ->values()
+                        ->all(),
                 ];
             }
 
@@ -60,63 +56,149 @@ if (! function_exists('worknoonResponse')) {
             ];
         };
 
-        $formatResource = function (Model|array $resource) use (
-            $type,
-            $formatRelationship
-        ): array {
-            if ($resource instanceof Model) {
-                $relationships = [];
 
-                foreach ($resource->getRelations() as $relationName => $related) {
-                    $relationships[$relationName] = $formatRelationship($related);
-                }
+        $formatModel = function (
+            Model $resource,
+            ?string $resourceType = null
+        ) use ($formatRelationship): array {
 
-                return [
-                    'type' => $type
-                        ?? Str::plural(
-                            Str::snake(class_basename($resource))
-                        ),
-                    'id' => (string) $resource->getKey(),
-                    'attributes' => collect($resource->attributesToArray())
-                        ->except([
-                            'id',
-                            'created_at',
-                            'updated_at',
-                            'deleted_at',
-                        ])
-                        ->all(),
-                    'relationships' => $relationships,
-                ];
+            $relationships = [];
+
+            foreach ($resource->getRelations() as $relationName => $related) {
+                $relationships[$relationName] = $formatRelationship($related);
             }
 
+            $attributes = collect(
+                $resource->attributesToArray()
+            )
+                ->except([
+                    'id',
+                    'created_at',
+                    'updated_at',
+                    'deleted_at',
+                ])
+                ->all();
+
             return [
-                'type' => $resource['type']
-                    ?? $type
-                    ?? request()->input('data.type', 'generic_data'),
-                'id' => isset($resource['id'])
-                    ? (string) $resource['id']
-                    : null,
-                'attributes' => $resource['attributes'] ?? $resource,
-                'relationships' => $resource['relationships'] ?? new stdClass,
+                'type' => $resourceType
+                    ?? Str::plural(
+                        Str::kebab(class_basename($resource))
+                    ),
+
+                'id' => (string) $resource->getKey(),
+
+                'attributes' => $attributes,
+
+                'relationships' => $relationships,
             ];
         };
 
-        $formattedData = $data instanceof Collection
-            ? $data->map($formatResource)->values()->all()
-            : $formatResource($data);
+
+
+        if ($data instanceof Collection) {
+            $formattedData = $data
+                ->filter(fn($item) => $item instanceof Model)
+                ->map(
+                    fn(Model $resource) =>
+                    $formatModel($resource, $type)
+                )
+                ->values()
+                ->all();
+        } elseif ($data instanceof Model) {
+            $formattedData = $formatModel(
+                $data,
+                $type
+            );
+        } elseif (
+            is_array($data)
+            && array_is_list($data)
+            && collect($data)->every(
+                fn($item) => $item instanceof Model
+            )
+        ) {
+            $formattedData = collect($data)
+                ->map(
+                    fn(Model $resource) =>
+                    $formatModel($resource, $type)
+                )
+                ->values()
+                ->all();
+        } elseif (
+            is_array($data)
+            && ! array_is_list($data)
+            && $type !== null
+        ) {
+            $attributes = [];
+            $relationships = [];
+
+            foreach ($data as $key => $value) {
+                if ($value instanceof Model) {
+                    $relationships[$key] = [
+                        'data' => [
+                            'type' => Str::plural(
+                                Str::kebab(class_basename($value))
+                            ),
+                            'id' => (string) $value->getKey(),
+                        ],
+                    ];
+
+                    continue;
+                }
+
+                $attributes[$key] = $value;
+            }
+
+            $formattedData = [
+                'type'          => $type,
+                'attributes'    => $attributes,
+                'relationships' => $relationships ?: new stdClass(),
+            ];
+        } else {
+
+            $formattedData = $data;
+        }
+
+        $formattedIncluded = collect($included)
+            ->filter(
+                fn($resource) =>
+                $resource instanceof Model
+            )
+            ->map(
+                fn(Model $resource) =>
+                $formatModel($resource)
+            )
+            ->values()
+            ->all();
+
+        $response = [
+            'message'  => $message,
+            'status'   => $status ? 'success' : 'error',
+            'data' => $formattedData,
+            'jsonapi' => [
+                'version' => JsonApiVersion::v1->value,
+            ],
+            'links' => [
+                'self' => $selfLink ?? app('url')->current(),
+            ],
+        ];
+
+        if ($formattedIncluded !== []) {
+            $response['included'] = $formattedIncluded;
+        }
+
+        if ($meta !== []) {
+            $response['meta'] = $meta;
+        }
 
         return response()->json(
-            [
-                'message'  => $message,
-                'status'   => $status ? 'success' : 'error',
-                'data'     => $formattedData,
-                'included' => $included,
-                'meta'     => $meta,
-                'jsonapi'  => ['version' => JsonApiVersion::v1->value],
-                'links'    => ['self' => $selfLink ?? app('url')->current()],
-            ],
+            $response,
             $statusCode,
-            array_merge(['Content-Type' => 'application/vnd.api+json'], $headers)
+            array_merge(
+                [
+                    'Content-Type' => 'application/vnd.api+json',
+                ],
+                $headers
+            )
         );
     }
 }
@@ -137,5 +219,34 @@ if (! function_exists('authorizedRole')) {
         }
 
         throw new AuthorizationException('Only ' . implode(', ', (array) $roles) . ' authorized action!');
+    }
+}
+
+
+if (! function_exists('queryFilter')) {
+
+    function queryFilter(Builder $query, array $filters, array $allowedFilters): Builder
+    {
+        foreach ($filters as $field => $value) {
+            if (
+                ! array_key_exists($field, $allowedFilters) ||
+                $value === null ||
+                $value === ''
+            ) {
+                continue;
+            }
+
+            $column = $allowedFilters[$field];
+
+            if (is_callable($column)) {
+                $column($query, $value);
+
+                continue;
+            }
+
+            $query->where($column, $value);
+        }
+
+        return $query;
     }
 }

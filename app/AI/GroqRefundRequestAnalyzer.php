@@ -33,11 +33,11 @@ class GroqRefundRequestAnalyzer implements RefundRequestAnalyzer
 
                     'messages' => [
                         [
-                            'role' => 'system',
+                            'role'    => 'system',
                             'content' => $this->systemPrompt(),
                         ],
                         [
-                            'role' => 'user',
+                            'role'    => 'user',
                             'content' => $this->buildCustomerContext(
                                 $refundRequest
                             ),
@@ -101,7 +101,7 @@ class GroqRefundRequestAnalyzer implements RefundRequestAnalyzer
         return json_encode(
             [
                 'customer' => [
-                    'id' => $refundRequest->customer->id,
+                    'id'   => $refundRequest->customer->id,
                     'name' => $refundRequest->customer->user?->name,
                 ],
 
@@ -115,10 +115,10 @@ class GroqRefundRequestAnalyzer implements RefundRequestAnalyzer
 
                     'items' => $refundRequest->order->items
                         ->map(fn($item) => [
-                            'product_name' => $item->product_name,
-                            'quantity' => $item->quantity,
-                            'unit_price_cents' => $item->unit_price_cents,
-                            'is_final_sale' => $item->is_final_sale,
+                            'product_name'      => $item->product_name,
+                            'quantity'          => $item->quantity,
+                            'unit_price_cents'  => $item->unit_price_cents,
+                            'is_final_sale'     => $item->is_final_sale,
                         ])
                         ->values()
                         ->all(),
